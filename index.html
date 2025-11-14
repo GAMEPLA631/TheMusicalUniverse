@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Musical Universe Chat - Generátor Hudobných Textov</title>
+    <!-- Načítanie Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Načítanie Three.js pre 3D animované pozadie -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <style>
+        /* Nové tmavé farby inšpirované požadovaným štýlom */
+        :root {
+            --primary: #818cf8; /* Svetlá fialová/indigo pre akcenty */
+            --secondary: #a78bfa; /* Svetlo fialová pre tagy */
+            --text: #d1d5db; /* Svetlý text */
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            /* Nastavenie pozadia pre viditeľnosť 3D scény */
+            background-color: #1f2937; /* Tmavá farba pre prípad, že canvas zlyhá */
+            overflow: hidden; /* Skryje pretečenie pri 3D */
+            position: relative;
+        }
+
+        /* 3D CANVAS - Umiestnenie na pozadí */
+        #three-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1; /* Kritické: pod chatovým kontajnerom */
+            display: block;
+        }
+
+        #chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 95vh;
+            max-height: 95vh;
+            width: 95%;
+            max-width: 750px;
+            
+            /* GLASS EFFECT - zabezpečuje splynutie s 3D pozadím */
+            background: rgba(30, 41, 59, 0.4); /* Polopriehľadné pozadie */
+            backdrop-filter: blur(20px); /* Silnejšie rozmazanie pre lepší sklenený efekt */
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 1.5rem; /* Väčšie zaoblenie */
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 15px 40px 0 rgba(0, 0, 0, 0.5); 
+            
+            overflow: hidden;
+            transition: all 0.3s ease;
+            z-index: 1; /* Nad 3D pozadím */
+        }
+        /* HLAVIČKA (Glass) */
+        #chat-container header {
+             background: rgba(30, 41, 59, 0.6);
+             backdrop-filter: blur(5px);
+             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        #chat-messages {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 1.5rem;
+            scroll-behavior: smooth;
+        }
+        .message {
+            margin-bottom: 1.5rem;
+            max-width: 90%;
+            border-radius: 0.75rem;
+            padding: 0.75rem 1rem;
+        }
+        .user-message {
+            margin-left: auto;
+            /* Polopriehľadný používateľský dym */
+            background-color: rgba(68, 70, 84, 0.7); /* Mierne tmavšie */
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+        .ai-message {
+            margin-right: auto;
+            /* Polopriehľadný AI dym */
+            background-color: rgba(30, 41, 59, 0.7); /* Mierne svetlejšie, aby sa odlíšilo */
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+        /* Farby textu v správach */
+        .user-message p, .ai-message p {
+            color: var(--text);
+        }
+        .ai-message pre {
+            color: var(--text);
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            margin-top: 0.5rem;
+            background-color: transparent;
+            padding: 0;
+            border: none;
+        }
+        .style-tag {
+            display: inline-block;
+            margin-top: 0.5rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.5rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+            background-color: var(--secondary);
+            color: #1f2937;
+        }
+        .loading-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--primary);
+            border-radius: 50%;
+            display: inline-block;
+            margin: 0 2px;
+            animation: bounce 0.6s infinite alternate;
+        }
+        .loading-dot:nth-child(2) { animation-delay: 0.2s; }
+        .loading-dot:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes bounce {
+            to { transform: translateY(-4px); }
+        }
+        
+        /* OVLÁDANIE A VSTUP (Glass) */
+        #controls-area-container { /* Nový kontajner pre spodnú oblasť */
+             background: rgba(30, 41, 59, 0.6);
+             backdrop-filter: blur(5px);
+             border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Vstupné prvky (Input, Select) s miernou priehľadnosťou */
+        #model-select, #user-input {
+            background-color: rgba(68, 70, 84, 0.8) !important;
+            border-color: rgba(255, 255, 255, 0.2) !important;
+            color: var(--text) !important;
+            transition: all 0.3s ease;
+        }
+        #model-select:focus, #user-input:focus {
+            background-color: rgba(68, 70, 84, 0.9) !important;
+        }
+        
+        /* NOVÁ ANIMÁCIA: Pulzujúce tlačidlo pri zameraní vstupu (Bass/Energy) */
+        .pulsing-container:focus-within #send-button {
+            animation: pulse-effect 1.5s infinite;
+        }
+
+        @keyframes pulse-effect {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 10px rgba(129, 140, 248, 0.4); }
+            50% { transform: scale(1.02); box-shadow: 0 0 20px rgba(129, 140, 248, 0.8); }
+        }
+
+        @media (max-width: 640px) {
+            #chat-container {
+                height: 100vh;
+                width: 100%;
+                max-width: none;
+                border-radius: 0;
+                border: none;
+            }
+            #controls-area {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 3D CANVAS pre animované pozadie -->
+    <canvas id="three-canvas"></canvas>
+
+    <div id="chat-container">
+        <!-- Hlavička (Glass Mode) -->
+        <header class="p-4 shadow-md">
+            <h1 class="text-2xl font-bold text-center flex items-center justify-center" style="color: var(--text);">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 text-primary" viewBox="0 0 24 24" fill="currentColor" style="color: var(--primary);">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15.68V6.32c0-.51.4-.92.9-.84l4.28 5.68c.36.48.36 1.12 0 1.6L12.9 18.6c-.5.08-.9-.33-.9-.84z"/>
+                </svg>
+                The Musical Universe
+            </h1>
+        </header>
+
+        <!-- Správy -->
+        <div id="chat-messages">
+            <div class="message ai-message">
+                <p class="font-bold text-sm mb-1" style="color: var(--primary);">The Musical Universe</p>
+                <p>Ahoj, KRÁĽ/KRÁĽOVNÁ! Si pripravený/-á? Vyber si model a napíš mi tému, náladu alebo žáner, o ktorom chceš dlhý, epický text. Poďme tvoriť hudbu!</p>
+            </div>
+        </div>
+
+        <!-- Ovládanie a Vstup (Glass Mode) -->
+        <div id="controls-area-container" class="p-4">
+            <div id="controls-area" class="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4 mb-4">
+                <div class="flex-1">
+                    <label for="model-select" class="block text-sm font-medium mb-1" style="color: var(--text);">Výber Modelu:</label>
+                    <select id="model-select" class="w-full p-2 border rounded-lg shadow-sm focus:ring-primary focus:border-primary">
+                        <option value="V1 Standard">V1 Štandard (Jednoduchý)</option>
+                        <option value="V4 Intermediate">V4 Stredne pokročilý (Komplexný)</option>
+                        
+                        <!-- NOVÉ MODELY -->
+                        <option value="V4.1 Premium">V4.1 Premium</option>
+                        <option value="V4.5-all Free">V4.5-all Free (Limitovaná verzia, do 2.1.2026)</option>
+
+                        <option value="V5 Pro Extreme">V5 Pro Extrémne pokročilý (Avantgarda)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- NOVÝ PULSING CONTAINER -->
+            <div class="flex space-x-3 pulsing-container">
+                <input type="text" id="user-input" placeholder="Spýtaj sa, čo hocičo..."
+                       class="flex-1 p-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
+                       onkeydown="if(event.key === 'Enter') document.getElementById('send-button').click()">
+
+                <button id="send-button"
+                        class="px-6 py-3 bg-primary text-white font-semibold rounded-lg shadow-md hover:bg-opacity-80 transition duration-150 disabled:opacity-50 flex items-center justify-center"
+                        style="background-color: var(--primary);">
+                    Odoslať
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Globálne premenné a konfigurácia pre Chat
+        const apiKey = "AIzaSyBIzvYGiWGoFUxmxdz2qEYMpNdCnUN8DjE";
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+
+        // UI elementy
+        const chatMessages = document.getElementById('chat-messages');
+        const userInput = document.getElementById('user-input');
+        const sendButton = document.getElementById('send-button');
+        const modelSelect = document.getElementById('model-select');
+
+        let isGenerating = false;
+
+        // --- Three.js 3D Pozadie Logika ---
+        let scene, camera, renderer, particles;
+        const particleCount = 2000;
+        const particleGeometry = new THREE.BufferGeometry();
+        const particleMaterial = new THREE.PointsMaterial({
+            color: 0x818cf8, // Použiť farbu --primary
+            size: 0.5,
+            transparent: true,
+            blending: THREE.AdditiveBlending,
+        });
+        const positions = new Float32Array(particleCount * 3);
+
+        function init3D() {
+            const canvas = document.getElementById('three-canvas');
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
+            renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
+            
+            renderer.setSize(width, height);
+            
+            // Nastavenie pozícií častíc
+            for (let i = 0; i < particleCount * 3; i += 3) {
+                // Náhodné pozície v kocke
+                positions[i] = (Math.random() - 0.5) * 200; // x
+                positions[i + 1] = (Math.random() - 0.5) * 200; // y
+                positions[i + 2] = (Math.random() - 0.5) * 200; // z
+            }
+
+            particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            particles = new THREE.Points(particleGeometry, particleMaterial);
+            scene.add(particles);
+
+            camera.position.z = 50;
+
+            window.addEventListener('resize', onWindowResize, false);
+        }
+
+        function onWindowResize() {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+            renderer.setSize(width, height);
+        }
+
+        const clock = new THREE.Clock();
+        
+        function animate3D() {
+            requestAnimationFrame(animate3D);
+
+            const elapsedTime = clock.getElapsedTime();
+
+            // Rotácia a pohyb častíc (abstraktná hudba/vesmír)
+            particles.rotation.y = elapsedTime * 0.05;
+            particles.rotation.x = elapsedTime * 0.02;
+
+            // Mierne pulzovanie kamery
+            camera.position.z = 50 + Math.sin(elapsedTime * 0.5) * 5;
+
+            renderer.render(scene, camera);
+        }
+
+        // --- Utility funkcie pre Chat ---
+
+        /**
+         * Vytvorí HTML element pre správu a pridá ju do chatu.
+         * @param {string} text Obsah správy.
+         * @param {('user'|'ai')} sender Odosielateľ správy.
+         * @param {string} [styleTag=''] Opis štýlu hudby pre AI správy.
+         */
+        function addMessageToChat(text, sender, styleTag = '') {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}-message flex flex-col`;
+
+            if (sender === 'user') {
+                messageDiv.innerHTML = `<p class="font-bold text-sm mb-1" style="color: var(--primary);">Ty:</p><p>${text}</p>`;
+            } else {
+                // Oddelenie štýlu od hlavného textu AI
+                const [lyrics, styleLine] = text.includes("Suno style of music:")
+                    ? text.split(/(Suno style of music:)/, 3).filter(Boolean)
+                    : [text, null];
+
+                let content = `<p class="font-bold text-sm mb-1" style="color: var(--primary);">The Musical Universe:</p>`;
+                
+                // Používame <pre> pre zachovanie formátovania textu piesne
+                content += `<pre class="whitespace-pre-wrap">${lyrics.trim()}</pre>`;
+
+                if (styleLine) {
+                    const styleContent = (styleLine + (styleLine.endsWith(':') ? '' : ' ') + text.substring(text.indexOf(styleLine) + styleLine.length)).trim();
+                    content += `<span class="style-tag">🎵 ${styleContent.replace(/Suno style of music:\s*/, '')}</span>`;
+                }
+
+                messageDiv.innerHTML = content;
+            }
+
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight; // Scroll na spodok
+        }
+
+        /**
+         * Získa systémovú inštrukciu na základe zvoleného modelu.
+         * @param {string} modelName Názov modelu (V1 Standard, V4 Intermediate, V5 Pro Extreme).
+         * @returns {string} Systémová inštrukcia.
+         */
+        function getSystemInstruction(modelName) {
+            // Definovanie požadovanej štruktúry s (Intro) a bez tučného písma
+            const structure = "(Intro), (Verse 1), (Pre-Chorus), (Chorus), (Verse 2), (Bridge), (Chorus), (Drop/Instrumental section), (Verse 3), (Pre-Chorus 2), (Chorus), (Outro)";
+
+            // ZÁKLADNÁ INŠTRUKCIA s vloženou štruktúrou a požiadavkou na extrémne rôzne žánre
+            const baseInstruction = `Ste The Musical Universe, AI, ktorá generuje texty piesní. Váš výstup musí byť DLHÝ, EPIKÝ a VŽDY dodržiavať nasledujúcu štruktúru s presnými nadpismi v zátvorkách: ${structure}. KAŽDÁ SEKCIA (Intro, Verse, Chorus atď.) MUSÍ obsahovať VIACERÉ RIADKY textu. Texty sa musia TÉMATICKY zameriavať na pocit BASSOV, HĹBKY, rezonancie a HRANICE HLASITOSTI, bez ohľadu na žáner. Na konci vašej odpovede VŽDY uveďte detailný, extrémne špecifický žáner alebo inovatívnu fúziu žánrov v štýle Suno. Inšpirujte sa, ale neobmedzujte sa, žánrami ako sú Bass Boosted, EDM, Trap, Techno, Pop, Electric, Kawaii, House Energy – the ultimate high-energy mix with deep bass. Cieľom je vytvárať nekonečne rôzne a unikátne žánrové kombinácie. Odpovedajte iba textami piesní a žánrom.`;
+
+            switch (modelName) {
+                case 'V1 Standard':
+                    return `V1 Štandard: ${baseInstruction} Používajte jednoduché témy a priame rýmy. Žáner má byť jeden, všeobecný.`;
+                case 'V4 Intermediate':
+                    return `V4 Stredne pokročilý: ${baseInstruction} Používajte sofistikované metafory, zložité témy a mierne nekonvenčnú štruktúru. Žáner má byť podrobný.`;
+                
+                // NOVÉ INŠTRUKCIE
+                case 'V4.1 Premium':
+                    return `V4.1 Premium: ${baseInstruction} Prináša mierne zvýšenú komplexnosť, dôraz na prepojenie textu a podžánrov. Žáner má byť detailný a kreatívny.`;
+                case 'V4.5-all Free':
+                    return `V4.5-all Free: ${baseInstruction} Ponúka najvyššiu kvalitu, hoci je časovo limitovaný. Používa extenzívne metafory a nečakané zvraty. Fúzia aspoň troch žánrov.`;
+                
+                case 'V5 Pro Extreme':
+                    return `V5 Pro Extrémne pokročilý: ${baseInstruction} Generujte avantgardné, experimentálne hudobné nápady. Používajte experimentálne štruktúry, nekonvenčné témy a abstraktný jazyk. Žáner musí byť fúziou aspoň dvoch rôznych žánrov.`;
+                default:
+                    return baseInstruction;
+            }
+        }
+
+        /**
+         * Zobrazí indikátor načítania AI.
+         * @returns {HTMLElement} Element indikátora.
+         */
+        function showLoadingIndicator() {
+            const indicatorDiv = document.createElement('div');
+            indicatorDiv.id = 'loading-indicator';
+            indicatorDiv.className = 'message ai-message flex items-center';
+            indicatorDiv.innerHTML = `
+                <p class="font-bold text-sm mr-2" style="color: var(--primary);">The Musical Universe premýšľa</p>
+                <div class="loading-dot"></div>
+                <div class="loading-dot"></div>
+                <div class="loading-dot"></div>
+            `;
+            chatMessages.appendChild(indicatorDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            return indicatorDiv;
+        }
+
+        /**
+         * Odstráni indikátor načítania.
+         */
+        function removeLoadingIndicator() {
+            const indicator = document.getElementById('loading-indicator');
+            if (indicator) {
+                indicator.remove();
+            }
+        }
+
+        /**
+         * Spustí volanie API s exponenciálnym backoffom.
+         * @param {object} payload Dáta pre API.
+         * @param {number} attempt Aktuálny pokus.
+         * @returns {Promise<object>} Odpoveď API.
+         */
+        async function fetchWithRetry(payload, attempt = 0) {
+            const maxAttempts = 5;
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.status === 429 && attempt < maxAttempts) {
+                    const delay = Math.pow(2, attempt) * 1000 + Math.random() * 1000;
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    return fetchWithRetry(payload, attempt + 1);
+                }
+
+                if (!response.ok) {
+                    throw new Error(`HTTP chyba! Status: ${response.status}`);
+                }
+
+                return response.json();
+            } catch (error) {
+                if (attempt < maxAttempts) {
+                    const delay = Math.pow(2, attempt) * 1000 + Math.random() * 1000;
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    return fetchWithRetry(payload, attempt + 1);
+                }
+                throw new Error(`Počet pokusov prekročený. Chyba: ${error.message}`);
+            }
+        }
+
+        // --- Hlavná logika chatu ---
+
+        /**
+         * Spracuje odoslanie správy.
+         */
+        async function sendMessage() {
+            if (isGenerating) return;
+
+            const userText = userInput.value.trim();
+            if (userText === '') return;
+            
+            // Kontrola, či vybraný model nevypršal (aj keď by mal byť odstránený)
+            if (modelSelect.value === 'EXPIRED') {
+                addMessageToChat("Tento model už nie je dostupný. Vyberte prosím iný.", 'ai');
+                return;
+            }
+
+            isGenerating = true;
+            sendButton.disabled = true;
+            userInput.value = '';
+            userInput.disabled = true;
+
+            // 1. Zobraziť správu používateľa
+            addMessageToChat(userText, 'user');
+
+            // 2. Zobraziť indikátor načítania
+            const loadingIndicator = showLoadingIndicator();
+
+            const selectedModel = modelSelect.value;
+            const systemInstruction = getSystemInstruction(selectedModel);
+
+            // 3. Pripraviť payload pre API
+            const payload = {
+                contents: [{ parts: [{ text: userText }] }],
+                // Povoliť Google Search pre kreatívne nápady
+                tools: [{ "google_search": {} }],
+                systemInstruction: { parts: [{ text: systemInstruction }] },
+            };
+
+            try {
+                const result = await fetchWithRetry(payload);
+                removeLoadingIndicator();
+
+                const candidate = result.candidates?.[0];
+
+                if (candidate && candidate.content?.parts?.[0]?.text) {
+                    const aiText = candidate.content.parts[0].text;
+                    addMessageToChat(aiText, 'ai');
+                } else {
+                    addMessageToChat("Prepáč, nepodarilo sa mi vygenerovať text. Skús to prosím znova s inou požiadavkou.", 'ai');
+                }
+
+            } catch (error) {
+                removeLoadingIndicator();
+                console.error("Chyba pri volaní API:", error);
+                addMessageToChat(`Nastala chyba v komunikácii. Prosím, skús to neskôr. (Chyba: ${error.message.substring(0, 50)}...)`, 'ai');
+            } finally {
+                isGenerating = false;
+                sendButton.disabled = false;
+                userInput.disabled = false;
+                userInput.focus();
+            }
+        }
+
+        // --- Inicializácia a Event Listenery ---
+        sendButton.addEventListener('click', sendMessage);
+        
+        // Inicializácia: Zameranie na vstup pri načítaní a spustenie 3D
+        window.addEventListener('load', () => {
+            userInput.focus();
+            init3D();
+            animate3D();
+
+            // LOGIKA PRE ČASOVÝ LIMIT MODELU V4.5-all Free
+            const removalDate = new Date('2026-01-02T00:00:00'); // 2. januára 2026, 00:00:00
+            const today = new Date();
+
+            if (today >= removalDate) {
+                const expiredOption = modelSelect.querySelector('option[value="V4.5-all Free"]');
+                if (expiredOption) {
+                    expiredOption.remove();
+                    
+                    // Ak bol vybratý odstránený model, prepnúť na iný
+                    if (modelSelect.value === 'V4.5-all Free') {
+                        modelSelect.value = 'V5 Pro Extreme'; 
+                    }
+                    
+                    // Pridanie informácie o odstránení
+                    const removedMsg = document.createElement('option');
+                    removedMsg.value = 'EXPIRED';
+                    removedMsg.textContent = 'V4.5-all Free (Odstránený 2.1.2026)';
+                    removedMsg.disabled = true;
+                    modelSelect.appendChild(removedMsg);
+                    
+                    // Mierne zväčšiť šírku select, ak by sa nezmestil text
+                    modelSelect.style.width = '100%';
+                }
+            }
+        });
+
+    </script>
+</body>
+</html>
