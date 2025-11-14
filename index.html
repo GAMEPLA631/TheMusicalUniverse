@@ -38,7 +38,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            z-index: -1; /* Kritické: pod chatovým kontajnerom */
+            z-index: -1; /* Kritické: pod chatovým kontajnérom */
             display: block;
         }
 
@@ -70,7 +70,7 @@
         }
         
         #chat-messages {
-            flex-grow: 1;
+            flex-grow = 1;
             overflow-y: auto;
             padding: 1.5rem;
             scroll-behavior: smooth;
@@ -364,16 +364,19 @@
                 case 'V1 Standard':
                     return `V1 Štandard: ${baseInstruction} Používajte jednoduché témy a priame rýmy. Žáner má byť jeden, všeobecný.`;
                 case 'V4 Intermediate':
-                    return `V4 Stredne pokročilý: ${baseInstruction} Používajte sofistikované metafory, zložité témy a mierne nekonvenčnú štruktúru. Žáner má byť podrobný.`;
+                    // ZMENA: V4 - Energy Texty
+                    return `V4 Stredne pokročilý: ${baseInstruction} Používajte sofistikované metafory, zložité témy a mierne nekonvenčnú štruktúru. Žáner má byť podrobný. Texty sa majú zameriavať na témy VYSOKEJ ENERGIE, rýchlosti a nespútanosti.`;
                 
-                // NOVÉ INŠTRUKCIE
                 case 'V4.1 Premium':
-                    return `V4.1 Premium: ${baseInstruction} Prináša mierne zvýšenú komplexnosť, dôraz na prepojenie textu a podžánrov. Žáner má byť detailný a kreatívny.`;
+                    // ZMENA: V4.1 - EDM, Techno, Darkness, Trap
+                    return `V4.1 Premium: ${baseInstruction} Prináša mierne zvýšenú komplexnosť, dôraz na prepojenie textu a podžánrov. Žáner má byť detailný a kreatívny. Texty by mali reflektovať žánre EDM, Techno, Tmu a Trap.`;
                 case 'V4.5-all Free':
-                    return `V4.5-all Free: ${baseInstruction} Ponúka najvyššiu kvalitu, hoci je časovo limitovaný. Používa extenzívne metafory a nečakané zvraty. Fúzia aspoň troch žánrov.`;
+                    // ZMENA: V4.5 - Bass Boosted EDM
+                    return `V4.5-all Free: ${baseInstruction} Ponúka najvyššiu kvalitu, hoci je časovo limitovaný. Používa extenzívne metafory a nečakané zvraty. Fúzia aspoň troch žánrov. Texty sa musia TÉMATICKY zameriavať na Bass Boosted EDM a jeho kultúru.`;
                 
                 case 'V5 Pro Extreme':
-                    return `V5 Pro Extrémne pokročilý: ${baseInstruction} Generujte avantgardné, experimentálne hudobné nápady. Používajte experimentálne štruktúry, nekonvenčné témy a abstraktný jazyk. Žáner musí byť fúziou aspoň dvoch rôznych žánrov.`;
+                    // ZMENA: V5 Pro - Extrémne Bassi
+                    return `V5 Pro Extrémne pokročilý: ${baseInstruction} Generujte avantgardné, experimentálne hudobné nápady. Používajte experimentálne štruktúry, nekonvenčné témy a abstraktný jazyk. Žáner musí byť fúziou aspoň dvoch rôznych žánrov. Texty sa majú zameriavať na témy spojené s EXTRÉMNYMI BASMI, deštrukciou a prekonávaním zvukových limitov.`;
                 default:
                     return baseInstruction;
             }
