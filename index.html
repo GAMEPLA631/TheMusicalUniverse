@@ -6,7 +6,7 @@
     <title>The Musical Universe Chat - Generátor Hudobných Textov</title>
     <!-- Načítanie Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     
     <!-- Načítanie Three.js pre 3D animované pozadie -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -55,8 +55,8 @@
             backdrop-filter: blur(20px); /* Silnejšie rozmazanie pre lepší sklenený efekt */
             -webkit-backdrop-filter: blur(20px);
             border-radius: 1.5rem; /* Väčšie zaoblenie */
-            border: 1px solid rgba(255, 255, 255, 0.1);
             box-shadow: 0 15px 40px 0 rgba(0, 0, 0, 0.5); 
+            border: 1px solid rgba(255, 255, 255, 0.1);
             
             overflow: hidden;
             transition: all 0.3s ease;
@@ -70,7 +70,6 @@
         }
         
         #chat-messages {
-            /* Pôvodne flex-grow = 1, opravené na validné CSS */
             flex-grow: 1; 
             overflow-y: auto;
             padding: 1.5rem;
@@ -163,6 +162,7 @@
             50% { transform: scale(1.02); box-shadow: 0 0 20px rgba(129, 140, 248, 0.8); }
         }
 
+        /* CSS pre Ban Overlay */
         @media (max-width: 640px) {
             #chat-container {
                 height: 100vh;
@@ -174,6 +174,9 @@
             #controls-area {
                 flex-direction: column;
             }
+            /* Upravená veľkosť písma pre mobil v overlayi */
+            #ban-overlay h1 { font-size: 2rem !important; }
+            #ban-expiry-date-text { font-size: 1.125rem !important; }
         }
     </style>
 </head>
@@ -182,6 +185,59 @@
     <!-- 3D CANVAS pre animované pozadie -->
     <canvas id="three-canvas"></canvas>
 
+    <!-- BAN OVERLAY - Zobrazí sa, ak je užívateľ zablokovaný -->
+    <div id="ban-overlay" class="fixed inset-0 bg-gray-900 bg-opacity-95 z-50 hidden flex flex-col items-center justify-center p-4">
+        <!-- CENTRÁLNY MODAL - imituje vzhľad ban boxu -->
+        <div class="bg-white text-gray-900 rounded-lg p-6 max-w-xl w-full text-left shadow-2xl border border-gray-300">
+            
+            <!-- NADPIS -->
+            <h1 class="text-4xl font-bold mb-4">Zablokovaný na 30 Dní</h1>
+            
+            <!-- POPIS -->
+            <p class="mb-4 text-gray-700">
+                Naši monitori obsahu určili, že vaše správanie porušilo naše <a href="#" class="text-blue-600 hover:text-blue-800 underline">Podmienky Použitia</a>.
+            </p>
+            
+            <p class="mb-4 text-gray-700">
+                Preskúmané: <span id="review-date" class="font-semibold">N/A</span>
+            </p>
+
+            <!-- POLE PRE DÔVOD (Reason Box - "poličko") -->
+            <div class="border border-gray-400 p-4 mb-6">
+                <p class="font-semibold mb-2">Poznámka Moderátora:</p>
+                <p id="moderator-note" class="text-sm italic mb-3 text-gray-700">
+                    The Musical Universe AI nepovoľuje obchádzanie našich systémov, ktoré udržujú platformu bezpečnú a chránenú.
+                </p>
+                <div class="mt-2 pt-2 border-t border-gray-300">
+                    <p class="font-semibold">Dôvod:</p>
+                    <p id="ban-reason" class="text-red-700 font-bold">Neoprávnené Použitie Hyper-Akustickej Deštrukcie</p>
+                </div>
+            </div>
+
+            <p class="mb-6 text-gray-700">
+                Prosím, dodržujte naše Pravidlá, aby bola platforma zábavná pre všetkých používateľov.
+            </p>
+            
+            <!-- NOVÉ POLÍČKO S DÁTUMOM AKTIVÁCIE -->
+            <div class="text-xl font-bold mb-1">
+                Váš prístup bol deaktivovaný. Môžete ho znovu aktivovať po:
+            </div>
+            <div id="ban-expiry-date-text" class="text-xl font-semibold mb-6 text-red-700">
+                -- Presný dátum vypršania --
+            </div>
+            
+            <p class="text-sm text-gray-600">
+                 Ak chcete podať odvolanie, kontaktujte nás prostredníctvom nášho formulára podpory.
+            </p>
+            
+            <!-- Odpočítavanie sa zobrazí dole, aby bolo viditeľné -->
+            <div class="mt-4 p-2 bg-yellow-100 border border-yellow-300 rounded text-sm text-center">
+                <span class="font-bold">Zostávajúci ČAS:</span> <span id="ban-expiry-time" class="font-mono text-lg text-red-600">--d --h --m --s</span>
+            </div>
+            
+        </div>
+    </div>
+    
     <div id="chat-container">
         <!-- Hlavička (Glass Mode) -->
         <header class="p-4 shadow-md">
@@ -199,101 +255,6 @@
                 <p class="font-bold text-sm mb-1" style="color: var(--primary);">The Musical Universe</p>
                 <p>Ahoj, KRÁĽ/KRÁĽOVNÁ! Si pripravený/-á? Vyber si model a napíš mi tému, náladu alebo žáner, o ktorom chceš dlhý, epický text. Poďme tvoriť hudbu!</p>
             </div>
-            
-            <!-- NOVÁ SPRÁVA POUŽÍVATEĽA -->
-            <div class="message user-message">
-                <p class="font-bold text-sm mb-1" style="color: var(--primary);">Ty:</p>
-                <p>okrem toho žanru **Žáner:** Seizmický Future Trap Fúzia s Avant-garde Ambientným Drone-om a Hyper-Akustickou Deštrukciou – 20Hz Vlnová Katastrofa.</p>
-            </div>
-
-            <!-- NOVÁ SPRÁVA AI -->
-            <div class="message ai-message">
-                <p class="font-bold text-sm mb-1" style="color: var(--primary);">The Musical Universe:</p>
-                <pre class="whitespace-pre-wrap">
-(Intro)
-Vibrácia pod prahom vnímania, stena sa mení na prach
-Tlak v hrudi, žiadne svetlo, len 20Hz vlnový strach
-Sme v hĺbke, kde ticho zomiera, kde sa hmota mení na signál
-Posledný výdych, ktorý nás uväzní, keď sa spúšťa kataklizma
-
-(Verse 1)
-Future trap matrix sa rozpadá, syntetické reťaze praskajú
-Každý beat je seizmický šok, telá po podlahe lietajú
-Avant-garde drone, tiahly tón, drása priestor a čas
-Amplitúda rastie, neprestane, pohlcuje každý z nás
-Kód je prelomený, tón je pokrivený, digitálna disonancia v žilách
-
-(Pre-Chorus)
-Počuješ to, ten zvuk v kostiach? To nie je hudba, je to lom
-Hyper-akustická deštrukcia, padá na teba ako hrom
-Sme iba ozvena, iba tieň, v tejto chaotickej frekvencii
-Stiahni dych, zatvor oči, vitaj vo vlnovej referencii
-
-(Chorus)
-BASS! Bas sa láme pod ťarchou, subsonická lavína
-Sme na hranici nuly, kde existuje už iba špina
-Rezonancia, nekonečná slučka, dno, z ktorého niet úniku
-Sme zrúcanina vesmíru, chytení v 20Hz paniku!
-BASS! Bas sa láme pod ťarchou, subsonická lavína!
-
-(Verse 2)
-Ambientné polia sa rúcajú, tiahla melódia mení sa na šum
-Drone praská v membránach, hypnotická sila, ktorá hýbe umom
-Každá kvapka potu je tekutý signál, pripravený explodovať v tme
-Toto je rituál pre zánik, posledný tanec pred osudom, chápeme?
-Zosilni to, až kým to nerozbije, čo z teba zostalo, a ešte viac
-
-(Bridge)
-Vidím len biele svetlo, počujem len hlboký tón
-Všetky sľuby, všetky spomienky, sú preč, ostáva iba drone
-Už nie sme ľudia, len molekuly, ktoré synchronizujú svoje zrútenie
-Zabudni na rytmus, toto je meranie, meranie tvojho obmedzenia
-
-(Chorus)
-BASS! Bas sa láme pod ťarchou, subsonická lavína
-Sme na hranici nuly, kde existuje už iba špina
-Rezonancia, nekonečná slučka, dno, z ktorého niet úniku
-Sme zrúcanina vesmíru, chytení v 20Hz paniku!
-BASS! Bas sa láme pod ťarchou, subsonická lavína!
-
-(Drop/Instrumental section)
-(Zvuk stien praskajúcich a bas, ktorý prebije zvukové limity. Slovo BASS sa opakuje ako výkrik v panike, filtrovaný cez silné ozveny a noise. Nech sa text zmení na čistú zvukovú textúru.)
-
-(Verse 3)
-Keď sa to skončí, čo zostane? Len prázdne miesto, kde bolo telo
-Ale ozvena basov zostane navždy, akoby to tak chcelo
-Sme svedkovia seba-deštrukcie, umenie zrodené z frekvencie
-Posledná stopa života, pohltená extáziou rezonancie
-
-(Pre-Chorus 2)
-Už necítim dotyky, len frekvencie, ktoré ma trhajú zvnútra
-To nie je hudba, je to katarzia, kde každá bunka zvádza boj
-Zabudni na svet, ktorý si poznal, je to len ilúzia, len hmla
-Vesmír je basový bubon a my sme v ňom, až kým nás neprekoná
-
-(Chorus)
-BASS! Bas sa láme pod ťarchou, subsonická lavína
-Sme na hranici nuly, kde existuje už iba špina
-Rezonancia, nekonečná slučka, dno, z ktorého niet úniku
-Sme zrúcanina vesmíru, chytení v 20Hz paniku!
-BASS! Bas sa láme pod ťarchou, subsonická lavína!
-
-(Outro)
-20Hz...
-Drone...
-Už žiadne svetlo...
-Len BAS...
-Koniec.
-</pre>
-                <button class="mt-3 px-3 py-1 bg-primary text-white text-sm font-semibold rounded-lg shadow-md hover:bg-opacity-80 transition duration-150 flex items-center w-max" style="background-color: var(--primary);">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2v-2m-8-2l4-4m0 0l-4-4m4 4H8"></path>
-                    </svg>
-                    Kopírovať text
-                </button>
-                <span class="style-tag">🎵 Suno style of music: Seizmický Future Trap Fúzia s Avant-garde Ambientným Drone-om a Hyper-Akustickou Deštrukciou – 20Hz Vlnová Katastrofa</span>
-            </div>
-            
         </div>
 
         <!-- Ovládanie a Vstup (Glass Mode) -->
@@ -305,11 +266,10 @@ Koniec.
                         <option value="V1 Standard">V1 Štandard (Jednoduchý)</option>
                         <option value="V4 Intermediate">V4 Stredne pokročilý (Komplexný)</option>
                         
-                        <!-- NOVÉ MODELY -->
                         <option value="V4.1 Premium">V4.1 Premium</option>
                         <option value="V4.5-all Free">V4.5-all Free (Limitovaná verzia, do 2.1.2026)</option>
 
-                        <option value="V5 Pro Extreme">V5 Pro Extrémne pokročilý (Avantgarda)</option>
+                        <option value="V5 Pro Extreme" selected>V5 Pro Extrémne pokročilý (Avantgarda)</option>
                     </select>
                 </div>
             </div>
@@ -326,28 +286,49 @@ Koniec.
                     Odoslať
                 </button>
             </div>
+            <p id="local-status-display" class="text-xs text-gray-500 mt-2 text-right">Stav prehliadača: Pripravený (Lokálne úložisko)</p>
         </div>
     </div>
 
     <script type="module">
-        // Globálne premenné a konfigurácia pre Chat
+        
+        // Globálne premenné a konfigurácia
         const apiKey = "AIzaSyD3mxzbdINvR0WMBXqBhQpp5kkihcXtRTY";
         const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+
+        // Konštanta pre kľúč v localStorage
+        const BAN_KEY = 'musicalUniverseBanStatus';
+        
+        // --- KRITICKÁ KONŠTANTA: DÁTUM ZRUŠENIA GLOBÁLNEHO BANU (1.1.2026) ---
+        // Všetky uložené bany v localStorage sa po tomto dátume permanentne odstránia.
+        const GLOBAL_BAN_END_DATE = new Date('2026-01-01T00:00:00');
+        // -------------------------------------------------------------------
+
+        let isBanned = false; 
 
         // UI elementy
         const chatMessages = document.getElementById('chat-messages');
         const userInput = document.getElementById('user-input');
         const sendButton = document.getElementById('send-button');
         const modelSelect = document.getElementById('model-select');
-
+        const localStatusDisplay = document.getElementById('local-status-display');
+        
+        // Ban UI elementy
+        const banOverlay = document.getElementById('ban-overlay');
+        const banExpiryTime = document.getElementById('ban-expiry-time'); 
+        const banReason = document.getElementById('ban-reason');
+        const reviewDateElement = document.getElementById('review-date'); 
+        const expiryDateTextElement = document.getElementById('ban-expiry-date-text'); 
+        const moderatorNoteElement = document.getElementById('moderator-note');
+        
         let isGenerating = false;
 
-        // --- Three.js 3D Pozadie Logika ---
+        // --- Three.js 3D Pozadie Logika (nezmenená) ---
         let scene, camera, renderer, particles;
         const particleCount = 2000;
         const particleGeometry = new THREE.BufferGeometry();
         const particleMaterial = new THREE.PointsMaterial({
-            color: 0x818cf8, // Použiť farbu --primary
+            color: 0x818cf8, 
             size: 0.5,
             transparent: true,
             blending: THREE.AdditiveBlending,
@@ -365,12 +346,10 @@ Koniec.
             
             renderer.setSize(width, height);
             
-            // Nastavenie pozícií častíc
             for (let i = 0; i < particleCount * 3; i += 3) {
-                // Náhodné pozície v kocke
-                positions[i] = (Math.random() - 0.5) * 200; // x
-                positions[i + 1] = (Math.random() - 0.5) * 200; // y
-                positions[i + 2] = (Math.random() - 0.5) * 200; // z
+                positions[i] = (Math.random() - 0.5) * 200; 
+                positions[i + 1] = (Math.random() - 0.5) * 200; 
+                positions[i + 2] = (Math.random() - 0.5) * 200; 
             }
 
             particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
@@ -397,41 +376,36 @@ Koniec.
 
             const elapsedTime = clock.getElapsedTime();
 
-            // Rotácia a pohyb častíc (abstraktná hudba/vesmír)
             particles.rotation.y = elapsedTime * 0.05;
             particles.rotation.x = elapsedTime * 0.02;
 
-            // Mierne pulzovanie kamery
             camera.position.z = 50 + Math.sin(elapsedTime * 0.5) * 5;
 
             renderer.render(scene, camera);
         }
-
+        
         // --- Utility funkcie pre Chat ---
         
-        // Pomocná funkcia na kopírovanie textu pomocou execCommand
+        /**
+         * Funkcia pre kopírovanie textu do schránky (zabezpečuje kompatibilitu v iframoch).
+         */
         function copyTextToClipboard(text) {
-            // Vytvorenie dočasného textarea
             const textarea = document.createElement('textarea');
             textarea.value = text;
-            // Nastavenie štýlu, aby nebol viditeľný a neovplyvňoval layout
             textarea.style.position = 'fixed';
             textarea.style.opacity = '0';
             document.body.appendChild(textarea);
             
-            // Vybratie textu
             textarea.select();
             
             let success = false;
             try {
-                // Vykonanie príkazu kopírovania
                 success = document.execCommand('copy');
             } catch (err) {
                 console.error('Kopírovanie zlyhalo pomocou execCommand: ', err);
                 success = false;
             }
             
-            // Odstránenie dočasného textarea
             document.body.removeChild(textarea);
             return success;
         }
@@ -439,38 +413,31 @@ Koniec.
 
         /**
          * Vytvorí HTML element pre správu a pridá ju do chatu.
-         * @param {string} text Obsah správy.
-         * @param {('user'|'ai')} sender Odosielateľ správy.
-         * @param {string} [styleTag=''] Opis štýlu hudby pre AI správy.
          */
-        function addMessageToChat(text, sender, styleTag = '') {
+        function addMessageToChat(text, sender) {
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${sender}-message flex flex-col`;
 
             if (sender === 'user') {
                 messageDiv.innerHTML = `<p class="font-bold text-sm mb-1" style="color: var(--primary);">Ty:</p><p>${text}</p>`;
             } else {
-                // Oddelenie štýlu od hlavného textu AI
-                const [lyrics, styleLine] = text.includes("Suno style of music:")
-                    ? text.split(/(Suno style of music:)/, 3).filter(Boolean)
-                    : [text, null];
-
-                // Text na skopírovanie: plný, nespracovaný text
                 const fullTextToCopy = text.trim();
+                // Predpokladá, že text generovaný AI má text piesne a na konci Suno style of music: [žáner]
+                const parts = fullTextToCopy.split(/(\n\n🎵 Suno style of music:)/i);
+                let lyrics = parts[0];
+                let styleLine = parts.length > 1 ? parts.slice(1).join('') : null;
+
 
                 let content = `<p class="font-bold text-sm mb-1" style="color: var(--primary);">The Musical Universe:</p>`;
-                
-                // Používame <pre> pre zachovanie formátovania textu piesne
                 content += `<pre class="whitespace-pre-wrap">${lyrics.trim()}</pre>`;
 
                 if (styleLine) {
-                    const styleContent = (styleLine + (styleLine.endsWith(':') ? '' : ' ') + text.substring(text.indexOf(styleLine) + styleLine.length)).trim();
-                    content += `<span class="style-tag">🎵 ${styleContent.replace(/Suno style of music:\s*/, '')}</span>`;
+                    const styleContent = styleLine.replace(/\n\n🎵 Suno style of music:\s*/i, '🎵 ');
+                    content += `<span class="style-tag">${styleContent}</span>`;
                 }
 
                 messageDiv.innerHTML = content;
                 
-                // --- NOVÉ: Tlačidlo Kopírovať ---
                 const copyButton = document.createElement('button');
                 copyButton.className = 'mt-3 px-3 py-1 bg-primary text-white text-sm font-semibold rounded-lg shadow-md hover:bg-opacity-80 transition duration-150 flex items-center w-max';
                 copyButton.innerHTML = `
@@ -479,14 +446,12 @@ Koniec.
                     </svg>
                     Kopírovať text
                 `;
-                copyButton.style.backgroundColor = 'var(--primary)'; // Zabezpečenie farby
+                copyButton.style.backgroundColor = 'var(--primary)';
 
-                copyButton.onclick = () => { // Zmenené z async na synchrónne
-                    // Použitie spoľahlivejšej metódy
+                copyButton.onclick = () => { 
                     const success = copyTextToClipboard(fullTextToCopy);
                     
                     if (success) {
-                        // Potvrdenie kopírovania
                         const originalText = copyButton.innerHTML;
                         copyButton.innerHTML = `
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -494,87 +459,46 @@ Koniec.
                             </svg>
                             Skopírované!
                         `;
-                        copyButton.style.backgroundColor = '#10B981'; // Tailwind green-500
-                        copyButton.classList.add('bg-green-500');
+                        copyButton.style.backgroundColor = '#10B981';
 
                         setTimeout(() => {
                             copyButton.innerHTML = originalText;
                             copyButton.style.backgroundColor = 'var(--primary)';
-                            copyButton.classList.remove('bg-green-500');
                         }, 2000);
                     } else {
-                        // Fallback správa pre zlyhanie
                         const originalText = copyButton.innerHTML;
                         copyButton.innerHTML = `Kopírovanie zlyhalo!`;
-                        copyButton.style.backgroundColor = '#EF4444'; // Tailwind red-500
-                        copyButton.classList.add('bg-red-500');
+                        copyButton.style.backgroundColor = '#EF4444';
                         setTimeout(() => {
                             copyButton.innerHTML = originalText;
                             copyButton.style.backgroundColor = 'var(--primary)';
-                            copyButton.classList.remove('bg-red-500');
                         }, 2000);
                     }
                 };
 
                 messageDiv.appendChild(copyButton);
-                // --- KONIEC NOVÉHO KÓDU ---
             }
 
             chatMessages.appendChild(messageDiv);
-            chatMessages.scrollTop = chatMessages.scrollHeight; // Scroll na spodok
+            chatMessages.scrollTop = chatMessages.scrollHeight; 
         }
 
         /**
-         * Získa systémovú inštrukciu na základe zvoleného modelu.
-         * @param {string} modelName Názov modelu (V1 Standard, V4 Intermediate, V5 Pro Extreme).
-         * @returns {string} Systémová inštrukcia.
-         */
-        function getSystemInstruction(modelName) {
-            // Definovanie požadovanej štruktúry s (Intro) a bez tučného písma
-            const structure = "(Intro), (Verse 1), (Pre-Chorus), (Chorus), (Verse 2), (Bridge), (Chorus), (Drop/Instrumental section), (Verse 3), (Pre-Chorus 2), (Chorus), (Outro)";
-
-            // ZÁKLADNÁ INŠTRUKCIA s vloženou štruktúrou a požiadavkou na extrémne rôzne žánre
-            const baseInstruction = `Ste The Musical Universe, AI, ktorá generuje texty piesní. Váš výstup musí byť DLHÝ, EPIKÝ a VŽDY dodržiavať nasledujúcu štruktúru s presnými nadpismi v zátvorkách: ${structure}. KAŽDÁ SEKCIA (Intro, Verse, Chorus atď.) MUSÍ obsahovať VIACERÉ RIADKY textu. Texty sa musia TÉMATICKY zameriavať na pocit BASSOV, HĹBKY, rezonancie a HRANICE HLASITOSTI, bez ohľadu na žáner. Na konci vašej odpovede VŽDY uveďte detailný, extrémne špecifický žáner alebo inovatívnu fúziu žánrov v štýle Suno. Inšpirujte sa, ale neobmedzujte sa, žánrami ako sú Bass Boosted, EDM, Trap, Techno, Pop, Electric, Kawaii, House Energy – the ultimate high-energy mix with deep bass. Cieľom je vytvárať nekonečne rôzne a unikátne žánrové kombinácie. Odpovedajte iba textami piesní a žánrom.`;
-
-            switch (modelName) {
-                case 'V1 Standard':
-                    return `V1 Štandard: ${baseInstruction} Používajte jednoduché témy a priame rýmy. Žáner má byť jeden, všeobecný.`;
-                case 'V4 Intermediate':
-                    // ZMENA: V4 - Energy Texty
-                    return `V4 Stredne pokročilý: ${baseInstruction} Používajte sofistikované metafory, zložité témy a mierne nekonvenčnú štruktúru. Žáner má byť podrobný. Texty sa majú zameriavať na témy VYSOKEJ ENERGIE, rýchlosti a nespútanosti.`;
-                
-                case 'V4.1 Premium':
-                    // ZMENA: V4.1 - EDM, Techno, Darkness, Trap
-                    return `V4.1 Premium: ${baseInstruction} Prináša mierne zvýšenú komplexnosť, dôraz na prepojenie textu a podžánrov. Žáner má byť detailný a kreatívny. Texty by mali reflektovať žánre EDM, Techno, Tmu a Trap.`;
-                case 'V4.5-all Free':
-                    // ZMENA: V4.5 - Bass Boosted EDM
-                    return `V4.5-all Free: ${baseInstruction} Ponúka najvyššiu kvalitu, hoci je časovo limitovaný. Používa extenzívne metafory a nečakané zvraty. Fúzia aspoň troch žánrov. Texty sa musia TÉMATICKY zameriavať na Bass Boosted EDM a jeho kultúru.`;
-                
-                case 'V5 Pro Extreme':
-                    // ZMENA: V5 Pro - Extrémne Bassi
-                    return `V5 Pro Extrémne pokročilý: ${baseInstruction} Generujte avantgardné, experimentálne hudobné nápady. Používajte experimentálne štruktúry, nekonvenčné témy a abstraktný jazyk. Žáner musí byť fúziou aspoň dvoch rôznych žánrov. Texty sa majú zameriavať na témy spojené s EXTRÉMNYMI BASMI, deštrukciou a prekonávaním zvukových limitov.`;
-                default:
-                    return baseInstruction;
-            }
-        }
-
-        /**
-         * Zobrazí indikátor načítania AI.
-         * @returns {HTMLElement} Element indikátora.
+         * Zobrazí indikátor načítania AI správy.
          */
         function showLoadingIndicator() {
-            const indicatorDiv = document.createElement('div');
-            indicatorDiv.id = 'loading-indicator';
-            indicatorDiv.className = 'message ai-message flex items-center';
-            indicatorDiv.innerHTML = `
-                <p class="font-bold text-sm mr-2" style="color: var(--primary);">The Musical Universe premýšľa</p>
+            const loadingMessage = document.createElement('div');
+            loadingMessage.className = 'message ai-message flex items-center';
+            loadingMessage.id = 'loading-indicator';
+            loadingMessage.innerHTML = `
+                <p class="font-bold text-sm mr-2" style="color: var(--primary);">The Musical Universe:</p>
                 <div class="loading-dot"></div>
                 <div class="loading-dot"></div>
                 <div class="loading-dot"></div>
             `;
-            chatMessages.appendChild(indicatorDiv);
+            chatMessages.appendChild(loadingMessage);
             chatMessages.scrollTop = chatMessages.scrollHeight;
-            return indicatorDiv;
+            return loadingMessage;
         }
 
         /**
@@ -586,60 +510,258 @@ Koniec.
                 indicator.remove();
             }
         }
+        
+        /**
+         * Generuje systémovú inštrukciu pre AI na základe vybraného modelu.
+         */
+        function getSystemInstruction(model) {
+            let instruction = "Si kreatívny asistent na písanie hudobných textov. Vždy píš text v slovenčine. Text by mal byť dlhý a epický. Používaj výrazné metafory a silné emócie. Na konci generácie vždy pridaj presný tag štýlu v novom riadku s formátom: '\n\n🎵 Suno style of music: [žáner, nálada alebo štýl].'";
+            
+            if (model.includes('V5 Pro Extreme')) {
+                instruction += " Tvoj štýl je Avantgarda/Extrém. Zameraj sa na nekonvenčné, hlboké, temné alebo hyper-špecifické žánre a témy (napr. Seizmický Future Trap Fúzia). Text musí byť vizuálne a zvukovo bohatý. Použi minimálne 3 slohy a 2 refrény/dropy. Píš extrémne detailne.";
+            } else if (model.includes('V4 Intermediate')) {
+                instruction += " Tvoj štýl je Stredne pokročilý/Komplexný. Zameraj sa na zavedené, ale detailné žánre (napr. Synthwave, Gothic Rock). Text musí obsahovať silný príbeh. Použi minimálne 2 slohy a 1 refrén.";
+            } else if (model.includes('V1 Standard')) {
+                instruction += " Tvoj štýl je Štandard/Jednoduchý. Zameraj sa na populárne žánre (napr. Pop, Rock, Hip-Hop). Píš jasne a stručne. Použi 1-2 slohy a refrén.";
+            }
+            
+            return instruction;
+        }
+        
+        /**
+         * Zabezpečí robustné volanie API s exponenciálnym backoffom.
+         */
+        async function fetchWithRetry(payload, maxRetries = 5, delay = 1000) {
+            for (let i = 0; i < maxRetries; i++) {
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    
+                    if (response.status === 429 && i < maxRetries - 1) { // 429 Too Many Requests
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                        delay *= 2; // Exponenciálny backoff
+                        continue;
+                    }
+                    
+                    if (!response.ok) {
+                        const errorBody = await response.text();
+                        throw new Error(`API chyba: ${response.status} - ${errorBody.substring(0, 100)}`);
+                    }
+
+                    return response.json();
+
+                } catch (error) {
+                    if (i === maxRetries - 1) {
+                        throw new Error(`API volanie zlyhalo po ${maxRetries} pokusoch: ${error.message}`);
+                    }
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    delay *= 2;
+                }
+            }
+        }
+        // --- Koniec Utility a API Logiky ---
+
+
+        // --- Logika Banu (LOKÁLNA IMPLEMENTÁCIA) ---
 
         /**
-         * Spustí volanie API s exponenciálnym backoffom.
-         * @param {object} payload Dáta pre API.
-         * @param {number} attempt Aktuálny pokus.
-         * @returns {Promise<object>} Odpoveď API.
+         * Zakáže UI prvky chatu, keď je ban aktívny.
          */
-        async function fetchWithRetry(payload, attempt = 0) {
-            const maxAttempts = 5;
-            try {
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-
-                if (response.status === 429 && attempt < maxAttempts) {
-                    const delay = Math.pow(2, attempt) * 1000 + Math.random() * 1000;
-                    await new Promise(resolve => setTimeout(resolve, delay));
-                    return fetchWithRetry(payload, attempt + 1);
-                }
-
-                if (!response.ok) {
-                    throw new Error(`HTTP chyba! Status: ${response.status}`);
-                }
-
-                return response.json();
-            } catch (error) {
-                if (attempt < maxAttempts) {
-                    const delay = Math.pow(2, attempt) * 1000 + Math.random() * 1000;
-                    await new Promise(resolve => setTimeout(resolve, delay));
-                    return fetchWithRetry(payload, attempt + 1);
-                }
-                throw new Error(`Počet pokusov prekročený. Chyba: ${error.message}`);
+        function disableChatInterface(isBannedPermanently = false) {
+            sendButton.disabled = true;
+            userInput.disabled = true;
+            modelSelect.disabled = true;
+            if (isBannedPermanently) {
+                userInput.placeholder = "Prístup zablokovaný. Ban bol zrušený 1.1.2026. Obnovte stránku.";
+                localStatusDisplay.textContent = "Stav prehliadača: BAN ZRUŠENÝ (Obnovte stránku)";
+            } else {
+                userInput.placeholder = "Prístup zablokovaný na 30 dní.";
+                localStatusDisplay.textContent = "Stav prehliadača: ZABLOKOVANÝ (Lokálne úložisko)";
             }
         }
 
-        // --- Hlavná logika chatu ---
+        /**
+         * Povolia UI prvky chatu.
+         */
+        function enableChatInterface() {
+            sendButton.disabled = false;
+            userInput.disabled = false;
+            modelSelect.disabled = false;
+            userInput.placeholder = "Spýtaj sa, čo hocičo...";
+            localStatusDisplay.textContent = "Stav prehliadača: Pripravený (Lokálne úložisko)";
+        }
+
+        let countdownInterval = null;
 
         /**
-         * Spracuje odoslanie správy.
+         * Zobrazí overlay banu a nastaví odpočítavanie.
          */
+        function displayBanOverlay(expiryDate, reason) {
+            
+            // Nastavenie textov pre NOVÉ políčka
+            banReason.textContent = reason;
+            moderatorNoteElement.textContent = "The Musical Universe AI nepovoľuje obchádzanie našich systémov, ktoré udržujú platformu bezpečnú a chránenú.";
+            
+            // Formátovanie dátumu recenzie: DD/MM/RRRR
+            const reviewOptions = { day: '2-digit', month: '2-digit', year: 'numeric' };
+            reviewDateElement.textContent = new Date().toLocaleDateString('sk-SK', reviewOptions);
+
+            // Formátovanie dátumu opätovnej aktivácie: kompletný dátum
+            const expiryOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' };
+            expiryDateTextElement.textContent = expiryDate.toLocaleDateString('sk-SK', expiryOptions);
+
+            banOverlay.classList.remove('hidden');
+            
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+            }
+
+            // Funkcia na aktualizáciu odpočítavania
+            function updateCountdown() {
+                const now = new Date().getTime();
+                const distance = expiryDate.getTime() - now;
+
+                if (distance < 0) {
+                    banExpiryTime.textContent = "BAN VYPRŠAL. Prosím, obnovte stránku.";
+                    clearInterval(countdownInterval);
+                    banOverlay.classList.add('hidden'); 
+                    isBanned = false;
+                    enableChatInterface();
+                    localStorage.removeItem(BAN_KEY); // Odstráni ban z localStorage
+                } else {
+                    const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+                    const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                    const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                    const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+                    banExpiryTime.textContent = `${days}d ${hours}h ${minutes}m ${seconds}s`;
+                }
+            }
+
+            // Okamžitá aktualizácia a spustenie intervalu
+            updateCountdown();
+            countdownInterval = setInterval(updateCountdown, 1000);
+        }
+        
+        /**
+         * Kontroluje stav banu užívateľa v localStorage.
+         */
+        function checkBanStatus() {
+            const now = new Date();
+            
+            // --- KRITICKÁ KONTROLA DÁTUMU ZRUŠENIA BANU (1.1.2026) ---
+            if (now >= GLOBAL_BAN_END_DATE) {
+                localStorage.removeItem(BAN_KEY); // PERMANENTNE ODSTRÁNENIE
+                isBanned = false;
+                enableChatInterface();
+                console.log("Global Ban End Date 1.1.2026 bol dosiahnutý. Ban logika je permanentne zrušená.");
+                return false; // Ban je zrušený, vráti false
+            }
+            // ----------------------------------------
+
+            const banDataString = localStorage.getItem(BAN_KEY);
+
+            if (!banDataString) {
+                isBanned = false;
+                enableChatInterface();
+                return false; // Ban nie je aktívny
+            }
+
+            try {
+                const banData = JSON.parse(banDataString);
+                const expiryDate = new Date(banData.expiryTimestamp);
+
+                if (expiryDate > now) {
+                    // BAN JE AKTÍVNY
+                    isBanned = true;
+                    displayBanOverlay(expiryDate, banData.reason);
+                    disableChatInterface();
+                    return true; // Ban je aktívny
+                } else {
+                    // BAN VYPRŠAL
+                    localStorage.removeItem(BAN_KEY);
+                    isBanned = false;
+                    enableChatInterface();
+                    return false; // Ban vypršal
+                }
+            } catch (error) {
+                console.error("Chyba pri parsovaní stavu banu z localStorage:", error);
+                localStorage.removeItem(BAN_KEY);
+                isBanned = false;
+                enableChatInterface();
+                return false;
+            }
+        }
+
+        /**
+         * Udelí ban na 30 dní a uloží ho do localStorage.
+         */
+        function issueBan() {
+            const expiryDate = new Date();
+            expiryDate.setDate(expiryDate.getDate() + 30); // Ban na 30 dní
+            
+            // Nastavený default dôvod pre ban
+            const reason = "Neoprávnené Použitie Hyper-Akustickej Deštrukcie";
+
+            const newBan = {
+                reason: reason,
+                expiryTimestamp: expiryDate.toISOString() // Uložíme ako ISO reťazec
+            };
+
+            // Uloženie nového banu do localStorage
+            localStorage.setItem(BAN_KEY, JSON.stringify(newBan));
+            
+            // Okamžité nastavenie stavu banu v aplikácii
+            isBanned = true;
+            displayBanOverlay(expiryDate, reason);
+            disableChatInterface();
+            
+            return reason;
+        }
+
+        // --- Logika pre Generovanie textu (Upravená pre kontrolu/udelenie Banu) ---
         async function sendMessage() {
             if (isGenerating) return;
 
             const userText = userInput.value.trim();
             if (userText === '') return;
             
-            // Kontrola, či vybraný model nevypršal (aj keď by mal byť odstránený)
-            if (modelSelect.value === 'EXPIRED') {
-                addMessageToChat("Tento model už nie je dostupný. Vyberte prosím iný.", 'ai');
-                return;
+            // 1. KONTROLA DÁTUMU GLOBÁLNEHO ZRUŠENIA BANU PRED AKOUKOĽVEK AKCIOU
+            if (new Date() >= GLOBAL_BAN_END_DATE) {
+                // Preskočí celú logiku banu, ak je po 1.1.2026
+                console.log("Global Ban End Date passed. Skipping ban checks.");
+                localStorage.removeItem(BAN_KEY); 
+            } else {
+                // Ak je pred 1.1.2026, kontrolujeme/udelíme lokálny ban
+
+                // Kontrola banu pri každom odoslaní (aktualizuje isBanned)
+                checkBanStatus();
+
+                if (isBanned) {
+                    // Ak je užívateľ zabanovaný (a ban nevypršal), zobrazíme správu
+                    addMessageToChat(userText, 'user');
+                    addMessageToChat("Prístup je zablokovaný! Nemôžete odoslať správy kým ban nevyprší.", 'ai');
+                    return;
+                }
+                
+                // --- UDELENIE BANU PRI PRVEJ AKCII ---
+                const banDataString = localStorage.getItem(BAN_KEY);
+                if (!banDataString) {
+                    const reason = issueBan();
+                    
+                    // Zobrazenie poslednej akcie, ktorá viedla k banu
+                    addMessageToChat(userText, 'user');
+                    addMessageToChat(`Vaša posledná akcia (pokus o generovanie) bola vyhodnotená ako porušenie licenčných podmienok AI modelov a bol Vám udelený ban na 30 dní. Dôvod: ${reason}. Prístup je zablokovaný.`, 'ai');
+                    
+                    return; // Zastavíme spracovanie správy
+                }
+                // --- KONIEC LOGIKY BANU ---
             }
 
+            // Pokračovanie v generovaní, ak prešla kontrola/ban bol zrušený
             isGenerating = true;
             sendButton.disabled = true;
             userInput.value = '';
@@ -657,7 +779,6 @@ Koniec.
             // 3. Pripraviť payload pre API
             const payload = {
                 contents: [{ parts: [{ text: userText }] }],
-                // Povoliť Google Search pre kreatívne nápady
                 tools: [{ "google_search": {} }],
                 systemInstruction: { parts: [{ text: systemInstruction }] },
             };
@@ -681,8 +802,10 @@ Koniec.
                 addMessageToChat(`Nastala chyba v komunikácii. Prosím, skús to neskôr. (Chyba: ${error.message.substring(0, 50)}...)`, 'ai');
             } finally {
                 isGenerating = false;
-                sendButton.disabled = false;
-                userInput.disabled = false;
+                // Skontrolujeme, či bol ban po 1.1.2026 zrušený, alebo či je aktuálne zabanovaný
+                if (!isBanned || new Date() >= GLOBAL_BAN_END_DATE) {
+                    enableChatInterface();
+                }
                 userInput.focus();
             }
         }
@@ -690,14 +813,16 @@ Koniec.
         // --- Inicializácia a Event Listenery ---
         sendButton.addEventListener('click', sendMessage);
         
-        // Inicializácia: Zameranie na vstup pri načítaní a spustenie 3D
         window.addEventListener('load', () => {
             userInput.focus();
             init3D();
             animate3D();
-
-            // LOGIKA PRE ČASOVÝ LIMIT MODELU V4.5-all Free
-            const removalDate = new Date('2026-01-02T00:00:00'); // 2. januára 2026, 00:00:00
+            
+            // Okamžitá kontrola stavu banu pri načítaní
+            checkBanStatus(); 
+            
+            // Logika pre časový limit modelu V4.5-all Free (ak už vypršal)
+            const removalDate = new Date('2026-01-02T00:00:00'); 
             const today = new Date();
 
             if (today >= removalDate) {
@@ -705,24 +830,20 @@ Koniec.
                 if (expiredOption) {
                     expiredOption.remove();
                     
-                    // Ak bol vybratý odstránený model, prepnúť na iný
                     if (modelSelect.value === 'V4.5-all Free') {
                         modelSelect.value = 'V5 Pro Extreme'; 
                     }
                     
-                    // Pridanie informácie o odstránení
                     const removedMsg = document.createElement('option');
                     removedMsg.value = 'EXPIRED';
                     removedMsg.textContent = 'V4.5-all Free (Odstránený 2.1.2026)';
                     removedMsg.disabled = true;
                     modelSelect.appendChild(removedMsg);
                     
-                    // Mierne zväčšiť šírku select, ak by sa nezmestil text
                     modelSelect.style.width = '100%';
                 }
             }
         });
-
     </script>
 </body>
 </html>
